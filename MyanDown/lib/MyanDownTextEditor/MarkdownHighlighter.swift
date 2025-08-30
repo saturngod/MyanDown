@@ -122,7 +122,7 @@ final class MarkdownHighlighter {
         boldRegex.enumerateMatches(in: text, options: [], range: fullRange) { match, _, _ in
             guard let match else { return }
             if intersectsAnyCode(match.range) { return }
-            textStorage.addAttributes([.font: NSFont.boldSystemFont(ofSize: theme.baseFontSize)], range: match.range)
+            textStorage.addAttributes([.font: theme.boldFont], range: match.range)
         }
 
         // Italic
@@ -149,7 +149,6 @@ final class MarkdownHighlighter {
             if !isInsideFencedCode {
                 textStorage.addAttributes([
                     .foregroundColor: theme.codeForegroundColor,
-                    .backgroundColor: theme.codeBackgroundColor,
                     .font: theme.codeFont
                 ], range: match.range)
             }
@@ -164,7 +163,7 @@ final class MarkdownHighlighter {
             if intersectsAnyCode(match.range) { return }
             textStorage.addAttributes([
                 .foregroundColor: theme.imageColor,
-                .font: NSFont.boldSystemFont(ofSize: theme.baseFontSize)
+                .font: theme.imageFont
             ], range: match.range)
         }
 
@@ -218,7 +217,7 @@ final class MarkdownHighlighter {
             if intersectsAnyCode(match.range) { return }
             textStorage.addAttributes([
                 .foregroundColor: theme.ruleColor,
-                .font: NSFont.boldSystemFont(ofSize: theme.baseFontSize)
+                .font: theme.baseFont
             ], range: match.range)
         }
 
@@ -247,7 +246,6 @@ final class MarkdownHighlighter {
             let languageRange = match.range(at: 1)
             let codeRange = match.range(at: 2)
             // Background for whole block
-            textStorage.addAttribute(.backgroundColor, value: theme.codeBackgroundColor, range: match.range)
             // Apply base code font to code content
             if codeRange.location != NSNotFound && codeRange.length > 0 {
                 textStorage.addAttribute(.font, value: theme.codeFont, range: codeRange)

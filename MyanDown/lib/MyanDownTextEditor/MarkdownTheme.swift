@@ -11,6 +11,7 @@ struct MarkdownTheme {
     let baseFontSize: CGFloat
     let baseFont: NSFont
     let baseColor: NSColor
+    let boldFont: NSFont
 
     let headerColor: NSColor
     let headerFont: NSFont
@@ -21,6 +22,7 @@ struct MarkdownTheme {
 
     let linkColor: NSColor
     let imageColor: NSColor
+    let imageFont: NSFont
 
     let listColor: NSColor
     let listFont: NSFont
@@ -45,6 +47,7 @@ struct MarkdownTheme {
             baseFontSize: 14,
             baseFont: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
             baseColor: NSColor.labelColor,
+            boldFont: NSFont.monospacedSystemFont(ofSize: 14, weight: .bold),
             headerColor: NSColor.systemBlue,
             headerFont: NSFont.boldSystemFont(ofSize: 14),
             codeFont: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
@@ -52,6 +55,7 @@ struct MarkdownTheme {
             codeBackgroundColor: NSColor.controlBackgroundColor,
             linkColor: NSColor.systemBlue,
             imageColor: NSColor.systemPurple,
+            imageFont: NSFontManager.shared.font(withFamily: "Monaco", traits: .italicFontMask, weight: 5, size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
             listColor: NSColor.systemOrange,
             listFont: NSFont.boldSystemFont(ofSize: 14),
             italicFont: NSFontManager.shared.font(withFamily: "Monaco", traits: .italicFontMask, weight: 5, size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
@@ -107,6 +111,7 @@ struct MarkdownTheme {
             baseFontSize: fontSize,
             baseFont: NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular),
             baseColor: baseTheme.baseColor,
+            boldFont: NSFont.monospacedSystemFont(ofSize: fontSize, weight: .bold),
             headerColor: baseTheme.headerColor,
             headerFont: NSFont.boldSystemFont(ofSize: fontSize),
             codeFont: NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular),
@@ -114,6 +119,7 @@ struct MarkdownTheme {
             codeBackgroundColor: baseTheme.codeBackgroundColor,
             linkColor: baseTheme.linkColor,
             imageColor: baseTheme.imageColor,
+            imageFont: NSFontManager.shared.font(withFamily: "Monaco", traits: .italicFontMask, weight: 5, size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
             listColor: baseTheme.listColor,
             listFont: NSFont.boldSystemFont(ofSize: fontSize),
             italicFont: NSFontManager.shared.font(withFamily: "Monaco", traits: .italicFontMask, weight: 5, size: fontSize) ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular),

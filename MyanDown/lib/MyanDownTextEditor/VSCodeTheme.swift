@@ -123,22 +123,24 @@ extension VSCodeTheme {
         let baseFontSize = fontSize
         let baseFont = NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .regular)
         let codeFont = NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .regular)
-        let headerFont = NSFont.boldSystemFont(ofSize: baseFontSize)
-        
+        let headerFont = NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .bold)
+        let boldFont = NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .bold)
         return MarkdownTheme(
             baseFontSize: baseFontSize,
             baseFont: baseFont,
             baseColor: colorFromHex(colors["editor.foreground"] ?? "#24292e") ?? NSColor.labelColor,
+            boldFont: boldFont,
             headerColor: colorFromHex(getTokenColor(for: "markup.heading") ?? "#005cc5") ?? NSColor.systemBlue,
             headerFont: headerFont,
             codeFont: codeFont,
-            codeForegroundColor: colorFromHex(colors["editor.foreground"] ?? "#24292e") ?? NSColor.systemRed,
+            codeForegroundColor: colorFromHex(colors["editorBracketHighlight.foreground1"] ?? "#24292e") ?? NSColor.systemRed,
             codeBackgroundColor: colorFromHex(colors["textCodeBlock.background"] ?? "#f6f8fa") ?? NSColor.controlBackgroundColor,
             linkColor: colorFromHex(colors["textLink.foreground"] ?? "#0366d6") ?? NSColor.systemBlue,
             imageColor: colorFromHex(getTokenColor(for: "markup.inserted") ?? "#6f42c1") ?? NSColor.systemPurple,
+            imageFont: NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .regular),
             listColor: colorFromHex(getTokenColor(for: "punctuation.definition.list.begin.markdown") ?? "#e36209") ?? NSColor.systemOrange,
-            listFont: NSFont.boldSystemFont(ofSize: baseFontSize),
-            italicFont: NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .regular),
+            listFont: NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .bold),
+            italicFont: NSFontManager.shared.font(withFamily: "Monaco", traits: .italicFontMask, weight: 5, size: baseFontSize) ?? NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .bold) ,
             blockquoteColor: colorFromHex(getTokenColor(for: "markup.quote") ?? "#22863a") ?? NSColor.systemGray,
             blockquoteFont: NSFont.monospacedSystemFont(ofSize: baseFontSize, weight: .regular),
             ruleColor: colorFromHex(colors["textSeparator.foreground"] ?? "#d1d5da") ?? NSColor.systemGray,

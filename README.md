@@ -1,10 +1,9 @@
 # MyanDown
 
-Hobby project for markdown editor to use by myself. I would like to write a programming book. But most of the markdown editor doesn't show the syntax highlighting inside markdown. So, I created by myself.
+Hobby project for markdown editor to use by myself. I would like to write a programming book. But most of the markdown editor doesn't show the syntax highlighting inside markdown.
 
-[x] Markdown Text Editor with Syntax Highlighting 
+[x] Markdown Text Editor with Syntax Highlighting
 [x] Language Syntax Highlighting in Markdown
-[ ] Dark Theme support
 [ ] Preview
 [ ] Settings for Font
 [ ] Save Markdown File
@@ -14,3 +13,6 @@ Hobby project for markdown editor to use by myself. I would like to write a prog
 [ ] Export HTML
 [ ] Export Epub
 [ ] Custom CSS Configuration for Epub
+
+
+![](./assets/screenshot.png)
