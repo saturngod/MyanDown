@@ -44,5 +44,7 @@ playground.xcworkspace
 .swiftpm
 .build/
 
+.claude/
 CLAUDE.md
 GEMINI.md
+.gitignore
