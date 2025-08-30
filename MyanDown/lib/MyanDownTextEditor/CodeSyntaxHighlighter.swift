@@ -259,9 +259,61 @@ final class CodeSyntaxHighlighter {
         return languages[language.lowercased()] != nil
     }
     
-    static func highlightCode(_ code: String, language: String, theme: MarkdownTheme) -> NSAttributedString {
+    static func highlightCode(_ code: String, language: String, theme: MarkdownTheme, vsCodeTheme: VSCodeTheme? = nil) -> NSAttributedString {
         let attributedString = NSMutableAttributedString(string: code)
         let range = NSRange(location: 0, length: code.count)
+        
+        // Helper function to get color from VS Code theme or fallback to GitHub Light colors
+        func getColor(for element: SyntaxElement, fallback: NSColor) -> NSColor {
+            if let color = vsCodeTheme?.getColorForSyntaxElement(element) {
+                return color
+            }
+            
+            // Use GitHub Light theme colors as fallbacks instead of system colors
+            func colorFromHex(_ hex: String) -> NSColor? {
+                var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if hexString.hasPrefix("#") {
+                    hexString.removeFirst()
+                }
+                
+                guard hexString.count == 6 else { return nil }
+                
+                var rgb: UInt64 = 0
+                guard Scanner(string: hexString).scanHexInt64(&rgb) else { return nil }
+                
+                let red = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
+                let green = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
+                let blue = CGFloat(rgb & 0x0000FF) / 255.0
+                
+                return NSColor(red: red, green: green, blue: blue, alpha: 1.0)
+            }
+            
+            switch element {
+            case .comment:
+                return colorFromHex("#6a737d") ?? fallback // Gray
+            case .string:
+                return colorFromHex("#032f62") ?? fallback // Dark blue
+            case .keyword:
+                return colorFromHex("#d73a49") ?? fallback // Red
+            case .storage:
+                return colorFromHex("#d73a49") ?? fallback // Red (same as keyword)
+            case .entity:
+                return colorFromHex("#6f42c1") ?? fallback // Purple
+            case .constant:
+                return colorFromHex("#005cc5") ?? fallback // Blue
+            case .variable:
+                return colorFromHex("#e36209") ?? fallback // Orange
+            case .function:
+                return colorFromHex("#6f42c1") ?? fallback // Purple (like entity)
+            case .number:
+                return colorFromHex("#005cc5") ?? fallback // Blue (like constant)
+            case .support:
+                return colorFromHex("#005cc5") ?? fallback // Blue
+            default:
+                return fallback
+            }
+        }
         
         // Apply base styling (NO foreground color - let syntax highlighting set all colors)
         attributedString.addAttributes([
@@ -283,15 +335,15 @@ final class CodeSyntaxHighlighter {
             nsText.enumerateSubstrings(in: NSRange(location: 0, length: nsText.length), options: .byLines) { substring, lineRange, _, _ in
                 guard let line = substring else { return }
                 if line.hasPrefix("@@") {
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemOrange, range: lineRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .number, fallback: NSColor.systemOrange), range: lineRange)
                 } else if line.hasPrefix("+++") || line.hasPrefix("---") {
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: lineRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .function, fallback: NSColor.systemBlue), range: lineRange)
                 } else if line.hasPrefix("+") {
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: lineRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .string, fallback: NSColor.systemGreen), range: lineRange)
                 } else if line.hasPrefix("-") {
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemRed, range: lineRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .keyword, fallback: NSColor.systemRed), range: lineRange)
                 } else if line.hasPrefix("diff ") || line.hasPrefix("index ") {
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGray, range: lineRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .comment, fallback: NSColor.systemGray), range: lineRange)
                 }
             }
             
@@ -310,7 +362,7 @@ final class CodeSyntaxHighlighter {
             if let commentRegex = try? NSRegularExpression(pattern: "<!--[\\s\\S]*?-->", options: []) {
                 commentRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGray, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .comment, fallback: NSColor.systemGray), range: match.range)
                 }
             }
 
@@ -319,7 +371,7 @@ final class CodeSyntaxHighlighter {
                 tagNameRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
                     let nameRange = match.range(at: 1)
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: nameRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .keyword, fallback: NSColor.systemPurple), range: nameRange)
                 }
             }
 
@@ -329,8 +381,8 @@ final class CodeSyntaxHighlighter {
                     guard let match else { return }
                     let nameRange = match.range(at: 1)
                     let valueRange = match.range(at: 2)
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: nameRange)
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: valueRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .function, fallback: NSColor.systemBlue), range: nameRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .string, fallback: NSColor.systemGreen), range: valueRange)
                 }
             }
 
@@ -349,7 +401,7 @@ final class CodeSyntaxHighlighter {
             if let commentRegex = try? NSRegularExpression(pattern: "/\\*[\\s\\S]*?\\*/", options: []) {
                 commentRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGray, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .comment, fallback: NSColor.systemGray), range: match.range)
                 }
             }
 
@@ -357,7 +409,7 @@ final class CodeSyntaxHighlighter {
             if let cssString = try? NSRegularExpression(pattern: "([\\\"'])(?:[^\\\\\\1]|\\\\.)*?\\1", options: []) {
                 cssString.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .string, fallback: NSColor.systemGreen), range: match.range)
                 }
             }
 
@@ -365,7 +417,7 @@ final class CodeSyntaxHighlighter {
             if let atRule = try? NSRegularExpression(pattern: "^\\s*@\\w+", options: .anchorsMatchLines) {
                 atRule.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .keyword, fallback: NSColor.systemPurple), range: match.range)
                 }
             }
 
@@ -374,7 +426,7 @@ final class CodeSyntaxHighlighter {
                 propName.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
                     let nameRange = match.range(at: 1)
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: nameRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .function, fallback: NSColor.systemBlue), range: nameRange)
                 }
             }
 
@@ -382,7 +434,7 @@ final class CodeSyntaxHighlighter {
             if let hex = try? NSRegularExpression(pattern: "#[0-9a-fA-F]{3,8}\\b", options: []) {
                 hex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemTeal, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .constant, fallback: NSColor.systemTeal), range: match.range)
                 }
             }
 
@@ -390,7 +442,7 @@ final class CodeSyntaxHighlighter {
             if let selectorToken = try? NSRegularExpression(pattern: "(\\.[-\\w]+|#[-\\w]+|::?[-\\w]+)", options: []) {
                 selectorToken.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .type, fallback: NSColor.systemPurple), range: match.range)
                 }
             }
 
@@ -398,7 +450,7 @@ final class CodeSyntaxHighlighter {
             if let numUnit = try? NSRegularExpression(pattern: "\\b\\d+(?:\\.\\d+)?(?:px|em|rem|vh|vw|%|s|ms)?\\b", options: []) {
                 numUnit.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemOrange, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .number, fallback: NSColor.systemOrange), range: match.range)
                 }
             }
 
@@ -417,7 +469,7 @@ final class CodeSyntaxHighlighter {
             if let commentRegex = try? NSRegularExpression(pattern: "#.*$", options: .anchorsMatchLines) {
                 commentRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGray, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .comment, fallback: NSColor.systemGray), range: match.range)
                 }
             }
 
@@ -425,7 +477,7 @@ final class CodeSyntaxHighlighter {
             if let stringRegex = try? NSRegularExpression(pattern: "([\\\"'])(?:[^\\\\\\1]|\\\\.)*?\\1", options: []) {
                 stringRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .string, fallback: NSColor.systemGreen), range: match.range)
                 }
             }
 
@@ -433,7 +485,7 @@ final class CodeSyntaxHighlighter {
             if let numberRegex = try? NSRegularExpression(pattern: "-?\\b\\d+(?:\\.\\d+)?\\b", options: []) {
                 numberRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemOrange, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .number, fallback: NSColor.systemOrange), range: match.range)
                 }
             }
 
@@ -450,7 +502,7 @@ final class CodeSyntaxHighlighter {
             if let boolRegex = try? NSRegularExpression(pattern: "(?i)\\b(true|false|null|yes|no|on|off)\\b", options: []) {
                 boolRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .keyword, fallback: NSColor.systemPurple), range: match.range)
                 }
             }
 
@@ -458,7 +510,7 @@ final class CodeSyntaxHighlighter {
             if let anchorRegex = try? NSRegularExpression(pattern: "[&*][A-Za-z0-9_-]+", options: []) {
                 anchorRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemTeal, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .type, fallback: NSColor.systemTeal), range: match.range)
                 }
             }
 
@@ -478,7 +530,7 @@ final class CodeSyntaxHighlighter {
             if let commentRegex = try? NSRegularExpression(pattern: commentPattern, options: .anchorsMatchLines) {
                 commentRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match = match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemGray, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .comment, fallback: NSColor.systemGray), range: match.range)
                 }
             }
         }
@@ -487,7 +539,7 @@ final class CodeSyntaxHighlighter {
         if let stringRegex = try? NSRegularExpression(pattern: langDef.stringPattern, options: []) {
             stringRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 guard let match = match else { return }
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: match.range)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .string, fallback: NSColor.systemGreen), range: match.range)
             }
         }
         
@@ -495,7 +547,7 @@ final class CodeSyntaxHighlighter {
         if let numberRegex = try? NSRegularExpression(pattern: langDef.numberPattern, options: []) {
             numberRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 guard let match = match else { return }
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemOrange, range: match.range)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .number, fallback: NSColor.systemOrange), range: match.range)
             }
         }
         
@@ -504,24 +556,42 @@ final class CodeSyntaxHighlighter {
            let variableRegex = try? NSRegularExpression(pattern: variablePattern, options: []) {
             variableRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 guard let match = match else { return }
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: match.range)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .variable, fallback: NSColor.systemBlue), range: match.range)
             }
         }
         
-        // 5. Keywords (purple) – single combined regex for reliability
-        if !langDef.keywords.isEmpty {
-            let joinedKeywords = langDef.keywords
+        // 5. Storage keywords (class, public, private, static, etc.) - should be red like keywords
+        let storageKeywords = ["class", "public", "private", "protected", "static", "final", "abstract", "interface", "struct", "enum", "var", "let", "const", "function", "func", "def", "import", "package", "namespace"]
+        let languageStorageKeywords = storageKeywords.filter { langDef.keywords.contains($0) }
+        if !languageStorageKeywords.isEmpty {
+            let joinedStorageKeywords = languageStorageKeywords
                 .map { NSRegularExpression.escapedPattern(for: $0) }
                 .joined(separator: "|")
-            if let keywordsRegex = try? NSRegularExpression(pattern: "\\b(?:\(joinedKeywords))\\b", options: []) {
-                keywordsRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
+            if let storageRegex = try? NSRegularExpression(pattern: "\\b(?:\(joinedStorageKeywords))\\b", options: []) {
+                storageRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match = match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .storage, fallback: NSColor.systemRed), range: match.range)
                 }
             }
         }
         
-        // 6. Types (cyan/teal)
+        // 6. Other keywords (purple) – single combined regex for reliability
+        if !langDef.keywords.isEmpty {
+            let regularKeywords = langDef.keywords.filter { !storageKeywords.contains($0) }
+            if !regularKeywords.isEmpty {
+                let joinedKeywords = regularKeywords
+                    .map { NSRegularExpression.escapedPattern(for: $0) }
+                    .joined(separator: "|")
+                if let keywordsRegex = try? NSRegularExpression(pattern: "\\b(?:\(joinedKeywords))\\b", options: []) {
+                    keywordsRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
+                        guard let match = match else { return }
+                        attributedString.addAttribute(.foregroundColor, value: getColor(for: .keyword, fallback: NSColor.systemPurple), range: match.range)
+                    }
+                }
+            }
+        }
+        
+        // 7. Types (cyan/teal) - built-in types
         if let types = langDef.types, !types.isEmpty {
             let joinedTypes = types
                 .map { NSRegularExpression.escapedPattern(for: $0) }
@@ -529,17 +599,17 @@ final class CodeSyntaxHighlighter {
             if let typeRegex = try? NSRegularExpression(pattern: "\\b(?:\(joinedTypes))\\b", options: []) {
                 typeRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                     guard let match = match else { return }
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemTeal, range: match.range)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .support, fallback: NSColor.systemTeal), range: match.range)
                 }
             }
         }
-        // 7. Class and interface names
+        // 8. Class and interface names (should use entity color - purple #6f42c1)
         // Highlight class names in class declarations: "class ClassName"
         if let classRegex = try? NSRegularExpression(pattern: "\\b(?:class|interface|struct|enum)\\s+([A-Z][A-Za-z0-9_]*)", options: []) {
             classRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 guard let match else { return }
                 let nameRange = match.range(at: 1)
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemYellow, range: nameRange)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .entity, fallback: NSColor.systemPurple), range: nameRange)
             }
         }
         
@@ -548,7 +618,7 @@ final class CodeSyntaxHighlighter {
             implementsRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 guard let match else { return }
                 let nameRange = match.range(at: 1)
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemYellow, range: nameRange)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .entity, fallback: NSColor.systemPurple), range: nameRange)
             }
         }
         
@@ -557,7 +627,7 @@ final class CodeSyntaxHighlighter {
             constructorRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 guard let match else { return }
                 let nameRange = match.range(at: 1)
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemYellow, range: nameRange)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .entity, fallback: NSColor.systemPurple), range: nameRange)
             }
         }
         
@@ -570,12 +640,12 @@ final class CodeSyntaxHighlighter {
                 let typeName = nsText.substring(with: typeRange)
                 // Skip if it's a keyword or already a known type
                 if !langDef.keywords.contains(typeName) && !(langDef.types?.contains(typeName) ?? false) {
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemYellow, range: typeRange)
+                    attributedString.addAttribute(.foregroundColor, value: getColor(for: .entity, fallback: NSColor.systemPurple), range: typeRange)
                 }
             }
         }
         
-        // 8. Function and method calls
+        // 9. Function and method calls
         // Highlight standalone function calls: name(...), skipping keywords
         if let funcRegex = try? NSRegularExpression(pattern: "(?<!\\.)\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*\\()", options: []) {
             funcRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
@@ -583,7 +653,7 @@ final class CodeSyntaxHighlighter {
                 let nameRange = match.range(at: 1)
                 let token = nsText.substring(with: nameRange)
                 if langDef.keywords.contains(token) { return }
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: nameRange)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .function, fallback: NSColor.systemBlue), range: nameRange)
             }
         }
         // Highlight method calls after dot: .name(...)
@@ -591,7 +661,7 @@ final class CodeSyntaxHighlighter {
             methodRegex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 guard let match else { return }
                 let nameRange = match.range(at: 1)
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: nameRange)
+                attributedString.addAttribute(.foregroundColor, value: getColor(for: .function, fallback: NSColor.systemBlue), range: nameRange)
             }
         }
         

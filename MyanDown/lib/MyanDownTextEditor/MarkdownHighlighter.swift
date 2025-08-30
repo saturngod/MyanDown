@@ -9,6 +9,7 @@ import AppKit
 
 final class MarkdownHighlighter {
     private let configuration: MyanDownEditorConfiguration
+    private let vsCodeTheme: VSCodeTheme?
 
     // Precompiled regex patterns
     private let headerRegex = try! NSRegularExpression(pattern: "^(#{1,6})\\s+(.*)$", options: .anchorsMatchLines)
@@ -32,8 +33,9 @@ final class MarkdownHighlighter {
     private let escapeRegex = try! NSRegularExpression(pattern: "\\\\([\\\\`*_{}\\[\\]()#+\\-.!])", options: [])
     private let htmlRegex = try! NSRegularExpression(pattern: "<[^>]+>", options: [])
 
-    init(configuration: MyanDownEditorConfiguration) {
+    init(configuration: MyanDownEditorConfiguration, vsCodeTheme: VSCodeTheme? = nil) {
         self.configuration = configuration
+        self.vsCodeTheme = vsCodeTheme ?? VSCodeTheme.light
     }
 
     func applyHighlighting(to textView: NSTextView) {
@@ -83,10 +85,9 @@ final class MarkdownHighlighter {
         headerRegex.enumerateMatches(in: text, options: [], range: fullRange) { match, _, _ in
             guard let match else { return }
             if intersectsAnyCode(match.range) { return }
-            let headerLevel = match.range(at: 1).length
             textStorage.addAttributes([
                 .foregroundColor: theme.headerColor,
-                .font: theme.headerFont(for: headerLevel)
+                .font: theme.headerFont
             ], range: match.range)
         }
 
@@ -96,7 +97,7 @@ final class MarkdownHighlighter {
             if intersectsAnyCode(match.range) { return }
             textStorage.addAttributes([
                 .foregroundColor: theme.headerColor,
-                .font: NSFont.boldSystemFont(ofSize: theme.headerBaseFontSize)
+                .font: theme.headerFont
             ], range: match.range)
         }
 
@@ -105,7 +106,7 @@ final class MarkdownHighlighter {
             if intersectsAnyCode(match.range) { return }
             textStorage.addAttributes([
                 .foregroundColor: theme.headerColor,
-                .font: NSFont.boldSystemFont(ofSize: max(theme.headerBaseFontSize - 2, theme.baseFont.pointSize))
+                .font: theme.headerFont
             ], range: match.range)
         }
 
@@ -113,7 +114,7 @@ final class MarkdownHighlighter {
         boldItalicRegex.enumerateMatches(in: text, options: [], range: fullRange) { match, _, _ in
             guard let match else { return }
             if intersectsAnyCode(match.range) { return }
-            let italicBold = NSFontManager.shared.font(withFamily: "Monaco", traits: [.boldFontMask, .italicFontMask], weight: 5, size: theme.baseFont.pointSize) ?? NSFont.boldSystemFont(ofSize: theme.baseFont.pointSize)
+            let italicBold = NSFontManager.shared.font(withFamily: "Monaco", traits: [.boldFontMask, .italicFontMask], weight: 5, size: theme.baseFontSize) ?? NSFont.boldSystemFont(ofSize: theme.baseFontSize)
             textStorage.addAttributes([.font: italicBold], range: match.range)
         }
 
@@ -121,7 +122,7 @@ final class MarkdownHighlighter {
         boldRegex.enumerateMatches(in: text, options: [], range: fullRange) { match, _, _ in
             guard let match else { return }
             if intersectsAnyCode(match.range) { return }
-            textStorage.addAttributes([.font: NSFont.boldSystemFont(ofSize: theme.baseFont.pointSize)], range: match.range)
+            textStorage.addAttributes([.font: NSFont.boldSystemFont(ofSize: theme.baseFontSize)], range: match.range)
         }
 
         // Italic
@@ -163,7 +164,7 @@ final class MarkdownHighlighter {
             if intersectsAnyCode(match.range) { return }
             textStorage.addAttributes([
                 .foregroundColor: theme.imageColor,
-                .font: NSFont.boldSystemFont(ofSize: theme.baseFont.pointSize)
+                .font: NSFont.boldSystemFont(ofSize: theme.baseFontSize)
             ], range: match.range)
         }
 
@@ -217,7 +218,7 @@ final class MarkdownHighlighter {
             if intersectsAnyCode(match.range) { return }
             textStorage.addAttributes([
                 .foregroundColor: theme.ruleColor,
-                .font: NSFont.boldSystemFont(ofSize: theme.baseFont.pointSize)
+                .font: NSFont.boldSystemFont(ofSize: theme.baseFontSize)
             ], range: match.range)
         }
 
@@ -256,7 +257,7 @@ final class MarkdownHighlighter {
                     language = (text as NSString).substring(with: languageRange).lowercased()
                 }
                 if !language.isEmpty && CodeSyntaxHighlighter.supportsLanguage(language) {
-                    let highlighted = CodeSyntaxHighlighter.highlightCode(codeContent, language: language, theme: theme)
+                    let highlighted = CodeSyntaxHighlighter.highlightCode(codeContent, language: language, theme: theme, vsCodeTheme: vsCodeTheme)
                     highlighted.enumerateAttributes(in: NSRange(location: 0, length: highlighted.length), options: []) { attrs, attrRange, _ in
                         let adjusted = NSRange(location: codeRange.location + attrRange.location, length: attrRange.length)
                         if adjusted.location >= 0 && adjusted.location + adjusted.length <= textStorage.length {

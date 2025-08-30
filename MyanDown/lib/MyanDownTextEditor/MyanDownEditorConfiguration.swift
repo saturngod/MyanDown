@@ -16,7 +16,7 @@ struct MyanDownEditorConfiguration {
     var focusOnAppear: Bool
 
     static let standard = MyanDownEditorConfiguration(
-        theme: .standard,
+        theme: .githubLight,
         lineFragmentPadding: 5,
         textContainerInset: NSSize(width: 5, height: 5),
         lineHeightMultiple: 1.2,
