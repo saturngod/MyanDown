@@ -1,5 +1,7 @@
 # MyanDown
 
+![](./assets/icon.png)
+
 Hobby project for markdown editor to use by myself. I would like to write a programming book. But most of the markdown editor doesn't show the syntax highlighting inside markdown.
 
 - [x] Markdown Text Editor with Syntax Highlighting
